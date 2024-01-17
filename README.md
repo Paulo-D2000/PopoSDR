@@ -11,6 +11,7 @@
 #### // TODO
 - [x] Upload code.
 - [x] Get a modem example working.
+- [ ] Fix the modulator code to generate the GMSK waveform again - AFSK1200 right now...
 - [ ] Split the lib and modem code
 - [ ] Add one build guide.
 - [ ] Document some of the API.
