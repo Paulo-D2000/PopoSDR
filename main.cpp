@@ -2,16 +2,10 @@
 #include <fstream>
 #include <thread>
 #include <random>
-#include <Modulator.h>
+#include <GmskModulator.h>
 
 #include <FmDemodulator.h>
 #include <TimingPLL.h>
-#include <Filters.h>
-#include <FirFilter.h>
-
-#include <SoapySDR/Device.hpp>
-#include <SoapySDR/Types.hpp>
-#include <SoapySDR/Formats.hpp>
 
 /* Init random generator */
 std::mt19937 rng(std::random_device{}());
@@ -169,7 +163,7 @@ int main(){
 
     LOG_INFO("Starting GMSK Modulator");
     
-    Modulator mod(1200, (int)48e3);
+    GmskModulator mod(1200, (int)48e3);
 
     Stream<CF32>* stream = mod.GetStream();
     
@@ -214,13 +208,6 @@ int main(){
     {
         inputSamples[i] = inputSamples[i] + CF32(npwr*ndist(rng),npwr*ndist(rng));
     }
-
-    /* Matched Filter */
-    FirFilter<CF32> lpfilt(Generate_Generic_LPF(mod.GetSampleRate(), mod.GetBaudRate(), 5),131072);
-    lpfilt.addSuffix("[Gaussian] Matched");
-
-    std::vector<CF32> filtSamples(inputSamples.size());
-    lpfilt.work(inputSamples.size(), inputSamples, filtSamples);
 
     /* FM Demodulator */
     FmDemodulator demod(0.5f*(float)mod.GetBaudRate(), mod.GetSampleRate()/4);

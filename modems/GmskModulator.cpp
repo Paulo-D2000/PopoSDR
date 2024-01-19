@@ -1,10 +1,10 @@
-#include <Modulator.h>
+#include <GmskModulator.h>
 #include <Filters.h>
 #include <random>
 
-Modulator::Modulator(size_t BaudRate, size_t SampleRate, size_t BufferSize) :  m_sps(SampleRate/BaudRate), m_samplerate(SampleRate), m_buffsize(BufferSize), m_inp_stream(m_buffsize*32)
+GmskModulator::GmskModulator(size_t BaudRate, size_t SampleRate, size_t BufferSize) :  m_sps(SampleRate/BaudRate), m_samplerate(SampleRate), m_buffsize(BufferSize), m_inp_stream(m_buffsize*32)
 {
-    LOG_DEBUG("Created Modulator.");
+    LOG_DEBUG("Created GmskModulator.");
     LOG_DEBUG("  Params:");
     LOG_DEBUG("    BaudRate:   {}",BaudRate);
     LOG_DEBUG("    SampleRate: {}",m_samplerate);
@@ -19,8 +19,8 @@ Modulator::Modulator(size_t BaudRate, size_t SampleRate, size_t BufferSize) :  m
         interp_taps = Generate_Generic_LPF((float)SampleRate, 0.5f * (float)SampleRate / (float)m_interp, 6, Kaiser);
     }
 
-    LOG_TEST("Modulator Interpolation: {}", m_interp);
-    LOG_TEST("Modulator Final SR: {}, Desired SR: {}", m_interp * m_sps * BaudRate, SampleRate);
+    LOG_TEST("GmskModulator Interpolation: {}", m_interp);
+    LOG_TEST("GmskModulator Final SR: {}, Desired SR: {}", m_interp * m_sps * BaudRate, SampleRate);
 
     std::vector<F32> taps = Generate_Gaussian_LPF(3.0f, 0.5f, (float)m_sps);
     auto ptr = new FirFilter<F32>(taps,m_buffsize*32);
@@ -30,10 +30,10 @@ Modulator::Modulator(size_t BaudRate, size_t SampleRate, size_t BufferSize) :  m
     m_interpolator->addSuffix("(Interpolator)");
 
     // Deviation for GMSK = BitRate / 4
-    m_fmmod = new FmModulator(500.f, SampleRate / m_interp);
+    m_fmmod = new FmModulator(0.25f * (float)BaudRate, SampleRate / m_interp);
 
-    //m_Gfilter->connect(&m_inp_stream);
-    m_fmmod->connect(&m_inp_stream);
+    m_Gfilter->connect(&m_inp_stream);
+    m_fmmod->connect(*m_Gfilter);
     m_interpolator->connect(*m_fmmod);
 
     m_out_stream = m_interpolator->getOutputStream();
@@ -55,8 +55,8 @@ uint8_t ccsds_scramble(uint8_t input){
     return out;
 }
 
-F32 m_phase = 0.0f;
-void Modulator::sendPacket(const std::vector<U8> &packet, ModulatorConfig cfg)
+
+void GmskModulator::sendPacket(const std::vector<U8> &packet, GmskModulatorConfig cfg)
 {
     static Stream<U8> bytes(1024); // Tx Bytes FIFO
 
@@ -64,18 +64,18 @@ void Modulator::sendPacket(const std::vector<U8> &packet, ModulatorConfig cfg)
     std::vector<U8> buf(cfg.PreambleLen, cfg.Preamble);
 
     /* Push [Syncword] bytes on the Tx FIFO */
-    //for (size_t i = 0; i < 32; i+=8){ 
-    //    buf.push_back((cfg.Syncword >> (24-i)) & 0xFF);
-    //}
+    for (size_t i = 0; i < 32; i+=8){ 
+        buf.push_back((cfg.Syncword >> (24-i)) & 0xFF);
+    }
     bytes.writeToBuffer(buf, buf.size());
-    //modulate(bytes);
+    modulate(bytes, false);
     
     /* Push [Data] bytes on the Tx FIFO */
     bytes.writeToBuffer(packet,packet.size());
     modulate(bytes,cfg.Scrambler);
 }
-U8 nrzi = 1;
-void Modulator::modulate(Stream<U8> &input_stream, bool scramble)
+
+void GmskModulator::modulate(Stream<U8> &input_stream, bool scramble)
 {
     if(!input_stream.isOpen()){
         LOG_ERROR("Input stream was closed!");
@@ -96,15 +96,13 @@ void Modulator::modulate(Stream<U8> &input_stream, bool scramble)
             memset(m_chunk,0,8);
             if(scramble){
                 /* CCSDS Scrambe  */
-                for (size_t i = 0; i < 8; i++)
+                for (size_t i = 0; i < 8; i++){
                     m_chunk[i] = ccsds_scramble((byte >> (7-i)) & 0x01);
+                }
             }else{
                 for (size_t i = 0; i < 8; i++)
-                {   
-                    if(!((byte >> (7-i)) & 0x01)){
-                        nrzi = !nrzi;
-                    }
-                    m_chunk[i] = nrzi;
+                {  
+                    m_chunk[i] = (byte >> (7-i)) & 0x01;
                 }
             }
 
@@ -123,8 +121,8 @@ void Modulator::modulate(Stream<U8> &input_stream, bool scramble)
     }
 }
 
-Modulator::~Modulator()
+GmskModulator::~GmskModulator()
 {
     stop();
-    LOG_DEBUG("Destroyed Modulator.");
+    LOG_DEBUG("Destroyed GmskModulator.");
 }

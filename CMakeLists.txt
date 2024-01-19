@@ -3,19 +3,14 @@ cmake_minimum_required (VERSION 3.0)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-project (ModemGMSK CXX)
+project (PopoSDR CXX)
 
-file(GLOB_RECURSE srcs src/*.cpp include/*.h)
+file(GLOB_RECURSE srcs src/*.cpp include/*.h modems/*.cpp modems/include/*.h)
 
 include_directories(
     ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/modems/include
 )
 
-add_executable(ModemGMSK main.cpp ${srcs})
-
-target_link_directories(ModemGMSK PRIVATE "C:/Program Files/PothosSDR/lib/")
-
-target_include_directories(ModemGMSK PRIVATE "C:/Program Files/PothosSDR/include/")
-
-target_link_libraries(ModemGMSK PRIVATE SoapySDR)
+add_executable(${PROJECT_NAME} main.cpp ${srcs})
