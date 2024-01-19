@@ -21,3 +21,14 @@
 - [ ] Add more blocks.
 - [ ] Refactor modem code.
 
+#### // Future plans / Goals
+- [x] Implement AFSK modulator
+- [ ] Implement one PSK modulator
+- [ ] Implement one Burst PSK demodulator (FFT based)
+- [ ] Implement one Decision directed synchronizer (a * conj(â))
+- [ ] Implement more advanced synchronizers
+- [ ] Complete GMSK modem
+- [ ] Complete FSK / AFSK modems
+- [ ] Complete M-PSK / QAM / APSK modems
+- [ ] Add OFDM ?
+- [ ] Add DSSS / CDMA ?
