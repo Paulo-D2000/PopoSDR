@@ -63,26 +63,6 @@ int main(){
     float spwr = Vec_AvgPwr(inputSamples);
     LOG_TEST("Avg Power: {:.3f} V(rms)",spwr);
 
-    auto samples = inputSamples;
-    
-
-    size_t OverRate = mod.GetSampleRate()*25;
-    size_t DownRate = OverRate / 24;
-    std::vector<CF32> oversamp(samples.size()*25);
-    std::vector<CF32> downsamp(oversamp.size()/24);
-    std::vector<CF32> finalsamp(downsamp.size()*20);
-    PolyPhaseFIR<CF32> up25x(Generate_Generic_LPF(OverRate, mod.GetSampleRate()/2, 25.0f, 3, Kaiser), {25, 1}, 0);
-    PolyPhaseFIR<CF32> down24x(Generate_Generic_LPF(OverRate, mod.GetSampleRate()/2, 1.0f, 3, Kaiser), {1,24}, 0);
-    PolyPhaseFIR<CF32> final20x(Generate_Generic_LPF(OverRate*20, mod.GetSampleRate()/2, 20.0f, 3, Kaiser), {20, 1}, 0);
-    up25x.work(samples.size(), samples, oversamp);
-    down24x.work(oversamp.size(), oversamp, downsamp);
-    final20x.work(downsamp.size(), downsamp, finalsamp);
-
-    auto fname = std::format("GMSK_{}Bd_{}Hz.wav",mod.GetBaudRate(),DownRate*20);
-    WriteWav(fname, ComplexInterleave(finalsamp), DownRate, 2, 0.5f); // Scale output by 0.5
-    spwr = Vec_AvgPwr(finalsamp);
-    LOG_TEST("Avg Power: {:.3f} V(rms)",spwr);
-
     /* Add AWGN */
     float SNRdB = 20.0f;
 
