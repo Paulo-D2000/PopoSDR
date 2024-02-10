@@ -20,14 +20,14 @@ public:
     void sendPacket(const std::vector<U8>& packet, GmskModulatorConfig cfg = {});
     void modulate(Stream<U8>& input_stream, bool scramble=false);
     void start(){
-        //m_Gfilter->start();
+        m_Gfilter->start();
         m_fmmod->start();
         m_interpolator->start();
     }
 
     void stop(){
         m_inp_stream.close();
-        //m_Gfilter->stop();
+        m_Gfilter->stop();
         m_fmmod->stop();
         m_interpolator->stop();
     }

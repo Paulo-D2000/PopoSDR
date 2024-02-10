@@ -17,8 +17,8 @@
 - :white_large_square: Refactor modulator code.
 - :white_large_square: Make the demodulator class & cleanup main
 - :white_large_square: Make a modem class.
-- :white_large_square: Move main code to examples
-- :white_large_square: Setup CMake to build the lib / modems / examples
+- :white_check_mark: Move main code to examples
+- :white_check_mark: Setup CMake to build the lib / modems / examples
 - :white_large_square: Add one build guide.
 - :white_large_square: Document some of the API.
 - :white_large_square: Add more blocks.

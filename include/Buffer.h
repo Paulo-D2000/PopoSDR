@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <memory>
+#include <chrono>
 #include <Logging.h>
 #include <Types.h>
 
@@ -29,6 +30,10 @@ public:
         return ((m_head+1) & m_mask) == m_tail;
     }
 
+    double getThroughput(){
+        return m_Thput;
+    }
+
     ~Buffer();
 
 private:
@@ -40,4 +45,8 @@ private:
 
     std::unique_ptr<T> m_buffer;
     size_t m_occupancy;
+
+    size_t m_NumTransfers;
+    std::chrono::time_point<std::chrono::system_clock> m_start;
+    double m_Thput;
 };

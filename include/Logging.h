@@ -20,15 +20,15 @@
 
 #define LOG_INFO(...)\
 {\
-    std::cout << GRN <<  "[INFO] " << std::format(__VA_ARGS__) << RST << std::endl;\
+    std::cerr << GRN <<  "[INFO] " << std::format(__VA_ARGS__) << RST << std::endl;\
 }\
 
 #define LOG_DEBUG(...)\
 {\
-    std::cout << YEL <<  "[DEBUG] " << std::format(__VA_ARGS__) << RST << std::endl;\
+    std::cerr << YEL <<  "[DEBUG] " << std::format(__VA_ARGS__) << RST << std::endl;\
 }\
 
 #define LOG_TEST(...)\
 {\
-    std::cout << MAG <<  "[TEST] " << std::format(__VA_ARGS__) << RST << std::endl;\
+    std::cerr << MAG <<  "[TEST] " << std::format(__VA_ARGS__) << RST << std::endl;\
 }\

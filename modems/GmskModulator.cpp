@@ -1,6 +1,7 @@
 #include <GmskModulator.h>
 #include <Filters.h>
 #include <random>
+#include <cstring>
 
 GmskModulator::GmskModulator(size_t BaudRate, size_t SampleRate, size_t BufferSize) :  m_sps(SampleRate/BaudRate), m_samplerate(SampleRate), m_buffsize(BufferSize), m_inp_stream(m_buffsize*32)
 {
@@ -16,17 +17,17 @@ GmskModulator::GmskModulator(size_t BaudRate, size_t SampleRate, size_t BufferSi
     if(m_sps > 10){
         m_interp = m_sps / 10;
         m_sps = 10;
-        interp_taps = Generate_Generic_LPF((float)SampleRate, 0.5f * (float)SampleRate / (float)m_interp, 6, Kaiser);
+        interp_taps = Generate_Generic_LPF((float)SampleRate, 0.5f * (float)SampleRate / (float)m_interp, (float)m_interp, 6, Kaiser);
     }
 
     LOG_TEST("GmskModulator Interpolation: {}", m_interp);
     LOG_TEST("GmskModulator Final SR: {}, Desired SR: {}", m_interp * m_sps * BaudRate, SampleRate);
 
     std::vector<F32> taps = Generate_Gaussian_LPF(3.0f, 0.5f, (float)m_sps);
-    auto ptr = new FirFilter<F32>(taps,m_buffsize*32);
+    auto ptr = new FirFilter<F32>(taps, {1,1}, m_buffsize*32);
     m_Gfilter = ptr;
     m_Gfilter->addSuffix("(Gaussian)");
-    m_interpolator = new FirFilter<CF32>(interp_taps, m_buffsize*32*m_interp, {.Interpolation=m_interp, .Decimation=1});
+    m_interpolator = new FirFilter<CF32>(interp_taps, {.Interpolation=m_interp, .Decimation=1}, m_buffsize*32*m_interp);
     m_interpolator->addSuffix("(Interpolator)");
 
     // Deviation for GMSK = BitRate / 4

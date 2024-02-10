@@ -32,7 +32,7 @@ void Buffer<T>::resize(const size_t &BufferSize)
     m_size = BufferSize;
     if(m_size % 2 != 0){
         LOG_ERROR("Buffer<{}>({}) Size must be a power of 2!.",typeid(T).name(),m_size);
-        m_size = 1 << (int)(log2(BufferSize)+1);
+        m_size = 1ll << (long long)(log2(BufferSize)+1);
         LOG_INFO("New BufferSize: {}", m_size);
     }
     m_mask = m_size - 1;
@@ -62,6 +62,15 @@ T Buffer<T>::read(){
     T sample = ptr[m_tail];
     m_tail = (m_tail + 1) & m_mask;
     m_occupancy--;
+    auto now = std::chrono::system_clock::now();
+    std::chrono::duration<double> elapsed = now - m_start;
+    if(elapsed.count() > 0.5){
+        m_Thput = static_cast<F32>(m_NumTransfers) / elapsed.count();
+        m_NumTransfers = 0;
+        LOG_DEBUG("[BUFFER<{}>({})] Throughtput: {:.1f} KT/s", typeid(T).name(), m_size, m_Thput / 1000);
+        m_start = std::chrono::system_clock::now();
+    }
+    m_NumTransfers++;
     return sample;
 }
 

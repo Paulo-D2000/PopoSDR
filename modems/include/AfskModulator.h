@@ -19,14 +19,12 @@ public:
     void sendPacket(const std::vector<U8>& packet, AfskModulatorConfig cfg = {});
     void modulate(Stream<U8>& input_stream);
     void start(){
-        //m_Gfilter->start();
         m_fmmod->start();
         m_interpolator->start();
     }
 
     void stop(){
         m_inp_stream.close();
-        //m_Gfilter->stop();
         m_fmmod->stop();
         m_interpolator->stop();
     }

@@ -13,10 +13,10 @@ struct FirRate{
 };
 
 template <typename T>
-class FirFilter: public SyncBlock<T>
+class FirFilter: public SyncBlock<T,T>
 {
 public:
-    FirFilter(const std::vector<F32>& taps={0.0f}, const size_t& BufferSize=0, const FirRate& rate={1,1});
+    FirFilter(const std::vector<F32>& taps={0.0f}, const FirRate& rate={1,1}, const size_t& BufferSize=0);
     
     void loadTaps(const std::vector<F32>& taps);
     T filter(const T& input);
@@ -30,4 +30,19 @@ private:
     FirRate m_rate;
     std::vector<F32> m_taps;
     std::vector<T> m_buffer;
+};
+
+template<typename T>
+class PolyPhaseFIR: public SyncBlock<T>
+{
+public:
+    PolyPhaseFIR(const std::vector<F32>& taps={0.0f}, const FirRate& rate={1,1}, const size_t& BufferSize=0);
+
+    size_t work(const size_t& n_inputItems, std::vector<T>&  input, std::vector<T>& output);
+
+    ~PolyPhaseFIR();
+
+private:
+    std::vector<FirFilter<T>*> m_filterbank;
+    FirRate m_rate;
 };
