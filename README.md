@@ -11,6 +11,7 @@
 - Network Source (UDP // TCP Server or Client)
 ###### Filters:
 - FIR Filter (Decimating or Interpolating) :white_check_mark:
+- Polyphase FIR (Decimating or Interpolating) :white_check_mark: - "Faster" Polyphase implementation useful for resampling.
 - FIR Taps (Gaussian, Lowpass, Root Raised Cosine) :white_check_mark:
 - CIC Filter (Decimating or Interpolating) :warning:
 ###### General:
