@@ -71,48 +71,49 @@ std::vector<F32> Generate_Generic_LPF(float SampleRate, float Cutoff, float Gain
 std::vector<F32> Generate_Root_Raised_Cosine(float SampleRate, float SymbolRate, float ExcessBw, float Gain, int Span)
 {
     float Ts = SampleRate/SymbolRate;
-    int Ntaps = int(2.0f * (float)Span * Ts);
+    int Ntaps = int((float)Span * Ts);
     if(Ntaps % 2==0)
         Ntaps++;
     std::vector<F32> taps(Ntaps);
     int Ntaps_1_2 = Ntaps / 2;
 
     /* Calculate Taps */
-    float tapsSum = 0.0f;
+    double tapsSum = 0;
     for(int i=0; i<Ntaps; i++){
-        float xindx = i - Ntaps_1_2;
-        float x1 = M_PI_F * xindx / Ts;
-        float x2 = 4.0f * ExcessBw * xindx / Ts;
-        float x3 = x2 * x2 - 1.0f;
-        float num, den;
+        double x1, x2, x3, num, den;
+        double xindx = i - Ntaps / 2;
+        x1 = M_PI * xindx / Ts;
+        x2 = 4 * ExcessBw * xindx / Ts;
+        x3 = x2 * x2 - 1;
 
-        if(fabsf(x3) >= 0.000001f){
-            if(i != Ntaps_1_2)
-                num = cosf((1.0f+ExcessBw) * x1) + sinf((1.0f-ExcessBw) / (4.0f * ExcessBw * xindx / Ts));
+        if (fabs(x3) >= 0.000001) { // Avoid Rounding errors...
+            if (i != Ntaps / 2)
+                num = cos((1 + ExcessBw) * x1) +
+                      sin((1 - ExcessBw) * x1) / (4 * ExcessBw * xindx / Ts);
             else
-                num = cosf((1.0f + ExcessBw) * x1) + (1.0f - ExcessBw) * M_PI_F / (4.0f * ExcessBw);
-            den = x3 * M_PI_F;
-        }else{
-            if(ExcessBw == 1.0f){
+                num = cos((1 + ExcessBw) * x1) + (1 - ExcessBw) * M_PI / (4 * ExcessBw);
+            den = x3 * M_PI;
+        } else {
+            if (ExcessBw == 1) {
                 taps[i] = -1;
                 tapsSum += taps[i];
                 continue;
             }
-            x3 = (1.0f - ExcessBw) * x1;
-            x2 = (1.0f + ExcessBw) * x1;
-            num = (sinf(x2) * (1.0f + ExcessBw) * M_PI_F -
-            cosf(x3) * ((1.0f - ExcessBw) * M_PI_F * Ts) / (4.0f * ExcessBw * xindx) +
-            sinf(x3) * Ts * Ts / (4.0f * ExcessBw * xindx * xindx));
-            den = -32.0f * M_PI_F * ExcessBw * ExcessBw * xindx / Ts;
+            x3 = (1 - ExcessBw) * x1;
+            x2 = (1 + ExcessBw) * x1;
+            num = (sin(x2) * (1 + ExcessBw) * M_PI -
+                   cos(x3) * ((1 - ExcessBw) * M_PI * Ts) / (4 * ExcessBw * xindx) +
+                   sin(x3) * Ts * Ts / (4 * ExcessBw * xindx * xindx));
+            den = -32 * M_PI * ExcessBw * ExcessBw * xindx / Ts;
         }
-        taps[i] = 4.0f * ExcessBw * num / den;
+        taps[i] = 4 * ExcessBw * num / den;
         tapsSum += taps[i];
     }
     
     /* Normalize Taps */
     for (size_t i = 0; i < Ntaps; i++)
     {
-        taps[i] *= Gain / tapsSum;
+        taps[i] = taps[i] * Gain / tapsSum;
     }
 
     LOG_DEBUG("Generated RRC (Root Raised Cosine) FIR Taps.");
@@ -122,6 +123,13 @@ std::vector<F32> Generate_Root_Raised_Cosine(float SampleRate, float SymbolRate,
     LOG_DEBUG("    ExcessBw:   {}",ExcessBw);
     LOG_DEBUG("    Span:       {} symbols",Span);
     LOG_DEBUG("    NumTaps:    {}",Ntaps);
+    
+    std::cerr << "[";
+    for (size_t i = 0; i < Ntaps; i++)
+    {
+        std::cerr << taps[i] << ", ";
+    }
+    std::cerr << "]\n";
     
     return taps;
 }

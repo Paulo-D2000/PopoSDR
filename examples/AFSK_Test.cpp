@@ -68,7 +68,7 @@ int main(){
     LOG_TEST("Avg Power: {:.3f} V(rms)",spwr);
 
     /* Test Timing Recovery PLL */
-    TimmingPLL<F32> pll(mod.GetSampleRate(), mod.GetBaudRate(), 0.9f);
+    TimingPLL<F32> pll(mod.GetSampleRate(), mod.GetBaudRate(), 0.9f);
 
     std::vector<F32> pllSamples(demodSamples.size()*mod.GetBaudRate()/mod.GetSampleRate());
     pll.work(demodSamples.size(), demodSamples, pllSamples);
