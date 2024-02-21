@@ -40,6 +40,8 @@ public:
 
     size_t work(const size_t& n_inputItems, std::vector<T>&  input, std::vector<T>& output);
 
+    std::vector<FirFilter<T>*>& GetFirBank(){return m_filterbank;}
+
     ~PolyPhaseFIR();
 
 private:

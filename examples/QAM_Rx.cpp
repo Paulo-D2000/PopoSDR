@@ -32,7 +32,7 @@ void WriteCout(CF32 data){
 
 int main(){
     size_t FmRate     = 48e3; // 48kHz
-    size_t BaudRate   = FmRate/10; //4800 Bd
+    size_t BaudRate   = FmRate/8; //4800 Bd
 
     // Bufer Sizes
     size_t PacketSize = 16384;
@@ -43,13 +43,19 @@ int main(){
 
     SocketSource<CF32, TCP> src(1234, PacketSize, true, 2*BufferSize);
 
-    Agc<CF32> agc(1e-4f, 1.0f, BufferSize);
+    Agc<CF32> agc(1e-4f, 1.0f/1.5f, BufferSize);
 
     TimingPLL<CF32> pll(FmRate, BaudRate, 1.0f-0.98f, BufferSize);
 
     // 16-QAM Constellation from GnuRadio
     std::vector<CF32> const_points = {{0.316228, -0.316228}, {-0.316228, -0.316228}, {0.948683, -0.948683}, {-0.948683, -0.948683}, {-0.948683, -0.316228}, {0.948683, -0.316228}, {-0.316228, -0.948683}, {0.316228, -0.948683}, {-0.948683, 0.948683}, {0.948683, 0.948683}, {-0.316228, 0.316228}, {0.316228, 0.316228}, {0.316228, 0.948683}, {-0.316228, 0.948683}, {0.948683, 0.316228}, {-0.948683, 0.316228}};
-    CarrierRecovery crec(const_points, 0.707f, 0.0628f/120.0f, BufferSize);
+    const_points.clear();
+    for (size_t i = 0; i < 4; i++)
+    {
+        const_points.push_back(std::exp(_1j*M_PI_F*(float)i/4.0f + M_PI_F/8.0f));
+    }
+    
+    CarrierRecovery crec(const_points, 0.707f, 0.0628f/200.0f, BufferSize);
 
     FirRate out_rate = {FmRate / BaudRate, 1};
     auto out_taps = Generate_Generic_LPF(FmRate, BaudRate/2, 0.5f*FmRate/BaudRate, 3, Kaiser);
@@ -62,15 +68,15 @@ int main(){
     agc.connect(src);
     rrc_fir.connect(agc);
     pll.connect(rrc_fir);
-    crec.connect(pll);
+    //crec.connect(rrc_fir);
     //out_resamp.connect(pll);
 
     // start blocks
     blocks.push_back(&src);
-    blocks.push_back(&rrc_fir);
     blocks.push_back(&agc);
+    blocks.push_back(&rrc_fir);
     blocks.push_back(&pll);
-    blocks.push_back(&crec);
+    //blocks.push_back(&crec);
     //blocks.push_back(&out_resamp);
 
     for (auto &blk : blocks)
@@ -81,21 +87,21 @@ int main(){
 
     // DEBUG -> Write to stdout
     auto stream = pll.getOutputStream();
-    std::vector<CF32> inputSamples(FmRate/60, 0);
+    std::vector<CF32> inputSamples(1024, 0);
 
     //auto stream_2 = pll.getOutputStream();
-    std::vector<CF32> inputSamples_2(4096, 0);
-    std::vector<CF32> errors;
+    std::vector<CF32> inputSamples_2(1024, 0);
+    //std::vector<CF32> errors;
     while(1){
         stream->WaitCv();
-        //pll.error_stream.WaitCv();
+        pll.error_stream.WaitCv();
         size_t nread = stream->readFromBuffer(inputSamples);
-        //nread = std::min(nread, pll.error_stream.readFromBuffer(inputSamples_2));
+        nread = std::min(nread, pll.error_stream.readFromBuffer(inputSamples_2));
         // try demod
         for (size_t i = 0; i < nread; i++)
         {
             WriteCout(0.5f * inputSamples[i]);
-            //WriteCout(0.5f * inputSamples_2[i]);
+            WriteCout(0.5f * inputSamples_2[i]);
             //errors.push_back(inputSamples_2[i]);
         }
         //if(errors.size() > 1024 * 1024){

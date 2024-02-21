@@ -16,9 +16,9 @@ include_directories(
 # Build MODEMS
 file(GLOB_RECURSE Modem_srcs modems/*.cpp modems/include/*.h)
 
-add_executable(GMSK_Test examples/GMSK_Test.cpp ${Lib_srcs} ${Modem_srcs})
-add_executable(AFSK_Test examples/AFSK_Test.cpp ${Lib_srcs} ${Modem_srcs})
-add_executable(Main_Test main.cpp ${Lib_srcs})
-add_executable(WFM_Test examples/WFM_Mono_UDP.cpp ${Lib_srcs})
-add_executable(GMSK_Rx examples/GMSK_Rx.cpp ${Lib_srcs})
+#add_executable(GMSK_Test examples/GMSK_Test.cpp ${Lib_srcs} ${Modem_srcs})
+#add_executable(AFSK_Test examples/AFSK_Test.cpp ${Lib_srcs} ${Modem_srcs})
+#add_executable(Main_Test main.cpp ${Lib_srcs})
+#add_executable(WFM_Test examples/WFM_Mono_UDP.cpp ${Lib_srcs})
+#add_executable(GMSK_Rx examples/GMSK_Rx.cpp ${Lib_srcs})
 add_executable(QAM_Rx examples/QAM_Rx.cpp ${Lib_srcs})

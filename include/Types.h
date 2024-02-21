@@ -1,6 +1,7 @@
 #pragma once 
 #include <cstdint>
 #include <complex>
+#include <vector>
 
 typedef float F32;
 typedef std::complex<F32> CF32;
@@ -41,5 +42,41 @@ struct CI64{
         result.real = real + other.real;
         result.imag = imag + other.imag;
         return result;
+    }
+};
+
+inline F32 Magn2(const CF32& x){
+    return x.real()*x.real() +  x.imag()*x.imag();
+}
+
+inline F32 Magn2(const F32& x){
+    return x*x;
+}
+
+struct Constellation{
+    std::vector<CF32> points;
+
+    Constellation(const std::vector<CF32>& Points): points(std::move(Points)){}
+
+    float compute_distance(const CF32& sample, size_t& min_idx){
+        min_idx = 0;
+        float min_distance = Magn2(sample - points[0]);
+        for (size_t idx = 1; idx < points.size(); idx++)
+        {
+            float dist = Magn2(sample - points[idx]);
+            if(dist < min_distance){
+                min_distance = dist;
+                min_idx = idx;
+            }
+        }
+        return min_distance;
+    }
+
+    CF32 make_decision(const CF32 &sample)
+    {
+        // Compute (squared) distance from sample to const points
+        size_t min_idx = 0;
+        compute_distance(sample, min_idx);
+        return points[min_idx];
     }
 };

@@ -13,11 +13,11 @@ private:
 public:
     struct Gains{float Kp; float Ki;};
 
-    ControlLoop(float Damping, float LoopBandwidth): m_integrator_0(0.0f), m_integrator_1(0.0f)
+    ControlLoop(float Damping, float LoopBandwidth, float Fs=1.0f, float KD=1.0f): m_integrator_0(0.0f), m_integrator_1(0.0f)
     {
-        float denom = 1.0f + 2.0f * Damping * LoopBandwidth + LoopBandwidth * LoopBandwidth;
-        m_Kp = (4.0f * Damping * LoopBandwidth) / denom;
-        m_Ki = (4.0f * LoopBandwidth * LoopBandwidth) / denom;
+        float denom = Fs*(Damping + 1.0f / (4.0f * Damping));
+        m_Kp = (4.0f * Damping * LoopBandwidth) / (KD*denom);
+        m_Ki = (4.0f * LoopBandwidth * LoopBandwidth) / (KD*denom*denom);
         LOG_DEBUG("ControlLoop Gains:\n  Kp: {}\n  Ki:{}",m_Kp, m_Ki);
     }
 
@@ -35,10 +35,14 @@ public:
     }
 
     float update(float input){
-        m_integrator_0 += m_Ki * input;
-        float pi_result = m_Kp * input + m_integrator_0;
-        m_integrator_1 += pi_result;
+        m_integrator_0 = m_integrator_0 + m_Ki * input;
+        float pi_result = m_integrator_0 + m_Kp * input;
+        //m_integrator_1 += pi_result;
         return pi_result;
+    }
+
+    Gains getGains(){
+        return Gains{m_Kp, m_Ki};
     }
     
     float getIntegrator0(){

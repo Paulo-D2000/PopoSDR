@@ -6,6 +6,7 @@ template <typename T>
 class TimingPLL: public SyncBlock<T>
 {
 private:
+    F32 m_sps;
     I32 m_step;
     I32 m_counter;
     I32 m_pcounter;
