@@ -19,6 +19,7 @@ public:
     FirFilter(const std::vector<F32>& taps={0.0f}, const FirRate& rate={1,1}, const size_t& BufferSize=0);
     
     void loadTaps(const std::vector<F32>& taps);
+    std::vector<F32>getTaps();
     T filter(const T& input);
 
     size_t work(const size_t& n_inputItems, std::vector<T>&  input, std::vector<T>& output);

@@ -10,6 +10,9 @@
 #include <Constellation.h>
 #include <Constants.h>
 
+
+/* This file is only for testing */
+
 /* Init random generator */
 std::mt19937 rng(std::random_device{}());
 // Random bytes distribuition
@@ -88,7 +91,6 @@ void WriteCout(CF32 data){
 }
 
 int main(){
-
 	//SoapySink sink("driver=plutosdr", {.SampleRate=1e6, .Frequency=433e6, .BufferSize=4096});
     
     //sink.connect(stream);
@@ -146,20 +148,26 @@ int main(){
     
 
     ConstellationMapper qam_mapper(points, 131072);
+    ConstellationDemapper qam_demapper(points, 131072);
 
-    std::vector<U8> bitsin(1024, 0);
+    std::vector<U8> bitsin(256, 0);
+    std::vector<U8> bitsout(256, 0);
 
+    // Test the Map -> Demap
     while(1){
-        for (size_t i = 0; i < 1024; i++)
+        for (size_t i = 0; i < 256; i++)
         {
-            bitsin[i] = dist(rng);
+            bitsin[i] = dist(rng) & 1;
         }
         size_t n = qam_mapper.work(bitsin.size(), bitsin, output_data);
-        for (size_t i = 0; i < n; i++)
+        size_t n2 = qam_demapper.work(n, output_data, bitsout);
+        for (size_t i = 0; i < std::min(bitsin.size(),n2); i++)
         {
-            CF32 awgn = CF32(ndist(rng), ndist(rng)) / sqrtf(2.0f);
-            WriteCout(awgn * 0.1f + output_data[i] * 1.4142f);
+            LOG_INFO("%d == %d ? %d", bitsin[i], bitsout[i], bitsin[i] == bitsout[i]);
+            //CF32 awgn = CF32(ndist(rng), ndist(rng)) / sqrtf(2.0f);
+            //WriteCout(awgn * 0.1f + output_data[i] * 1.4142f);
         }
+        break;
         //LOG_DEBUG("Wrote {} Samples", n);
         std::this_thread::sleep_for(std::chrono::milliseconds(1000*n/48000));
     }

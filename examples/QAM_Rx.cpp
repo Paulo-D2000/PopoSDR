@@ -6,113 +6,88 @@
 #include <iterator>
 
 // Demodulator includes
-#include <FmDemodulator.h>
 #include <TimingPLL.h>
 #include <FirFilter.h>
 #include <Filters.h>
 #include <Utils.h>
-#include <WaveFile.h>
 #include <Agc.h>
 #include <Networking.h>
 #include <CarrierRecovery.h>
-
-void _writeFloat(F32 data){
-    I16 val = (short)(data * (float)INT16_MAX);
-    std::cout << (U8)(val & 0xFF) << (U8)((val >> 8) & 0xFF);
-}
-
-void WriteCout(F32 data){
-    _writeFloat(data);
-}
-
-void WriteCout(CF32 data){
-    _writeFloat(data.real());
-    _writeFloat(data.imag());
-}
+#include <TerminalSink.h>
 
 int main(){
-    size_t FmRate     = 48e3; // 48kHz
+    size_t FmRate     = 48e3;      // 48kHz
     size_t BaudRate   = FmRate/8; //4800 Bd
 
     // Bufer Sizes
-    size_t PacketSize = 16384;
+    size_t PacketSize = 8192*4; // Change to match socket input...
     size_t BufferSize = 131072;
 
     // Blocks
     std::vector<Block*> blocks;
-
     SocketSource<CF32, TCP> src(1234, PacketSize, true, 2*BufferSize);
 
-    Agc<CF32> agc(1e-4f, 1.0f/1.5f, BufferSize);
-
-    TimingPLL<CF32> pll(FmRate, BaudRate, 1.0f-0.98f, BufferSize);
+    // Compensate for FIR peaks & input level
+    Agc<CF32> agc(1e-5f, 0.707f, BufferSize);
 
     // 16-QAM Constellation from GnuRadio
     std::vector<CF32> const_points = {{0.316228, -0.316228}, {-0.316228, -0.316228}, {0.948683, -0.948683}, {-0.948683, -0.948683}, {-0.948683, -0.316228}, {0.948683, -0.316228}, {-0.316228, -0.948683}, {0.316228, -0.948683}, {-0.948683, 0.948683}, {0.948683, 0.948683}, {-0.316228, 0.316228}, {0.316228, 0.316228}, {0.316228, 0.948683}, {-0.316228, 0.948683}, {0.948683, 0.316228}, {-0.948683, 0.316228}};
-    const_points.clear();
-    for (size_t i = 0; i < 4; i++)
+    float avg = Vec_AvgPwr(const_points);
+    LOG_INFO("AVG: %.3f", avg);
+    for (size_t i = 0; i < const_points.size(); i++)
     {
-        const_points.push_back(std::exp(_1j*M_PI_F*(float)i/4.0f + M_PI_F/8.0f));
+        const_points[i] /= avg;
     }
     
-    CarrierRecovery crec(const_points, 0.707f, 0.0628f/200.0f, BufferSize);
+    CarrierRecovery crec(const_points, 0.707f, 1.0/200.0f, BufferSize);
 
-    FirRate out_rate = {FmRate / BaudRate, 1};
-    auto out_taps = Generate_Generic_LPF(FmRate, BaudRate/2, 0.5f*FmRate/BaudRate, 3, Kaiser);
-    PolyPhaseFIR<CF32> out_resamp(out_taps, out_rate, BufferSize);
+    size_t nfilts = 32;
+    auto rrc_pfb_taps = Generate_Root_Raised_Cosine(FmRate*nfilts, BaudRate, 0.5f, nfilts, 11);
+    
+    size_t newsize = rrc_pfb_taps.size();
+    if(newsize % nfilts != 0){
+        newsize += nfilts - (newsize % nfilts);
+    }
 
-    auto rrc_taps = Generate_Root_Raised_Cosine(FmRate, BaudRate, 0.5f, 1.0f, 11.0f);
-    FirFilter<CF32> rrc_fir(rrc_taps, {1,1}, BufferSize);
+    std::vector<F32> finalTaps(newsize, 0);
+    std::copy(rrc_pfb_taps.begin(), rrc_pfb_taps.end(), finalTaps.begin());
+
+    std::vector<std::vector<F32>> rrc_pfb;
+    for (size_t i = 0; i < nfilts; i++)
+    { 
+        std::vector <F32> tapseg(newsize / nfilts);
+        for (size_t j = 0; j < tapseg.size(); j++)
+        {
+            tapseg[j] = finalTaps[i+j*nfilts];
+        }
+        rrc_pfb.push_back(tapseg);
+    }
+    
+    // Timing recovery PLL with Polyphase Matched filter
+    TimingPLL<CF32> pll(FmRate, BaudRate, PFB, rrc_pfb, BufferSize);
+
+    // Output IQ samples via stdout;
+    TerminalSink<CF32> samp_out(BaudRate, BufferSize);
 
     // connect
     agc.connect(src);
-    rrc_fir.connect(agc);
-    pll.connect(rrc_fir);
-    //crec.connect(rrc_fir);
-    //out_resamp.connect(pll);
+    pll.connect(agc);
+    crec.connect(pll);
+    samp_out.connect(crec);
 
     // start blocks
     blocks.push_back(&src);
     blocks.push_back(&agc);
-    blocks.push_back(&rrc_fir);
     blocks.push_back(&pll);
-    //blocks.push_back(&crec);
-    //blocks.push_back(&out_resamp);
+    blocks.push_back(&crec);
+    blocks.push_back(&samp_out);
 
     for (auto &blk : blocks)
         blk->start();
 
-    // simulate some delay
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    // DEBUG -> Write to stdout
-    auto stream = pll.getOutputStream();
-    std::vector<CF32> inputSamples(1024, 0);
-
-    //auto stream_2 = pll.getOutputStream();
-    std::vector<CF32> inputSamples_2(1024, 0);
-    //std::vector<CF32> errors;
-    while(1){
-        stream->WaitCv();
-        pll.error_stream.WaitCv();
-        size_t nread = stream->readFromBuffer(inputSamples);
-        nread = std::min(nread, pll.error_stream.readFromBuffer(inputSamples_2));
-        // try demod
-        for (size_t i = 0; i < nread; i++)
-        {
-            WriteCout(0.5f * inputSamples[i]);
-            WriteCout(0.5f * inputSamples_2[i]);
-            //errors.push_back(inputSamples_2[i]);
-        }
-        //if(errors.size() > 1024 * 1024){
-        //    break;
-        //}
-    }
-
-    // simulate some delay
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    //WriteWav("PLL_Error.wav", ComplexInterleave(errors), BaudRate, 2, 1.0f);
+    // wait for user input
+    char quit;
+    std::cin >> quit;
 
     // stop
     for (auto &blk : blocks)

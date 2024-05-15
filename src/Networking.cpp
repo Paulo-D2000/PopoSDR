@@ -1,4 +1,5 @@
 #include <Networking.h>
+#include <fcntl.h>
 
 void CheckError(int code){
     assert(code != -1);
@@ -13,6 +14,7 @@ SocketSource<OT, net>::SocketSource(uint16_t Port, size_t PacketSize, bool clien
     // create socket
     m_sockfd = socket(AF_INET, net == TCP ? SOCK_STREAM : SOCK_DGRAM, 0);
     CheckError(m_sockfd);
+    //fcntl(m_sockfd, F_SETFL, O_NONBLOCK);
 
     m_addr = {
     .sin_family = AF_INET,
@@ -22,6 +24,16 @@ SocketSource<OT, net>::SocketSource(uint16_t Port, size_t PacketSize, bool clien
     };
 
     m_buffer = std::make_unique<U8[]>(m_pktsize);
+    if(sizeof(OT) == 2){ // I16
+        this->resizeOutput(m_pktsize / 2);
+    }
+    else if(sizeof(OT) == 4){ // F32
+        this->resizeOutput(m_pktsize / 2);
+    }
+    else if(sizeof(OT) == 8){ // CF32
+        this->resizeOutput(m_pktsize / 4);
+    }
+    
 }
 
 template <typename OT, NetworkConnection net>
@@ -72,11 +84,11 @@ size_t SocketSource<F32, UDP>::work(std::vector<F32>& output){
 
 template <typename OT, NetworkConnection net>
 size_t SocketSource<OT, net>::work_complex(std::vector<CF32>& output){
-    int nread = recv(m_sockfd, &m_buffer[0], std::min(4*output.size(), m_pktsize), 0);
+    int nread = recv(m_sockfd, &m_buffer[0], m_pktsize, 0);
     if(nread == -1){
         return 0;
     }
-    for (size_t i = 0; i < m_pktsize; i+=4)
+    for (size_t i = 0; i < nread; i+=4)
     {
         I16 real = *((I16*)&m_buffer[i]);
         I16 imag = *((I16*)&m_buffer[i+2]);
@@ -87,11 +99,11 @@ size_t SocketSource<OT, net>::work_complex(std::vector<CF32>& output){
 
 template <typename OT, NetworkConnection net>
 size_t SocketSource<OT, net>::work_float(std::vector<F32>& output){
-    int nread = recv(m_sockfd, &m_buffer[0], std::min(2*output.size(), m_pktsize), 0);
+    int nread = recv(m_sockfd, &m_buffer[0], m_pktsize, 0);
     if(nread == -1){
         return 0;
     }
-    for (size_t i = 0; i < m_pktsize; i+=2)
+    for (size_t i = 0; i < nread; i+=2)
     {
         I16 sample = *((I16*)&m_buffer[i]);
         output[i/2] = (float)sample / (float)INT16_MAX;
@@ -101,7 +113,7 @@ size_t SocketSource<OT, net>::work_float(std::vector<F32>& output){
 
 template <typename OT, NetworkConnection net>
 size_t SocketSource<OT, net>::work_s16(std::vector<I16>& output){
-    int nread = recv(m_sockfd, &output[0], std::min(output.size(), m_pktsize), 0);
+    int nread = recv(m_sockfd, &output[0], m_pktsize, 0);
     if(nread == -1){
         return 0;
     }

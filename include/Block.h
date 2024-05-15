@@ -16,8 +16,13 @@ private:
     std::mutex m_mtx;
     std::condition_variable m_cv;
 public:
-    Stream(const size_t& Buffersize) : buffer(Buffersize), mSize(Buffersize) {open();}
-    ~Stream(){close();}
+    Stream(const size_t& Buffersize) : buffer(Buffersize), mSize(Buffersize) {
+        open();
+    }
+    
+    ~Stream(){
+        close();
+    }
 
     enum WaitType {Empty= 0, Full=1};
 
@@ -28,20 +33,7 @@ public:
         return ret;
     }
 
-    void WaitCv(WaitType wt = Empty){
-        std::unique_lock<std::mutex> lock(m_mtx);
-        if(wt == Empty){
-            m_cv.wait(lock, [this]() { return !buffer.isEmpty() || closed; });
-            return;
-        }
-        else if(wt == Full){
-            m_cv.wait(lock, [this]() { return !buffer.isFull() || closed; });
-            return;
-        }else{
-            m_cv.wait(lock, [this]() { return closed; });
-            return;
-        }
-    }
+    void WaitCv(WaitType wt = Empty);
 
     bool isEmpty(){
         return buffer.isEmpty();
@@ -52,53 +44,26 @@ public:
     }
 
     void open(){
-        std::unique_lock<std::mutex> lock(m_mtx);
-        LOG_DEBUG("Open Stream {}",mSize);
+       std::unique_lock<std::mutex> lock(m_mtx);
+        LOG_DEBUG("Open Stream(%d)",mSize);
         closed = false;
         lock.unlock();
         m_cv.notify_all();
     }
 
     void close(){
+        std::unique_lock<std::mutex> lock(m_mtx);
         if(!closed){
-            std::unique_lock<std::mutex> lock(m_mtx);
-            LOG_DEBUG("Close Stream {}",mSize);
+            LOG_DEBUG("Close Stream(%d)",mSize);
             closed = true;
-            lock.unlock();
-            m_cv.notify_all();
         }
+        lock.unlock();
+        m_cv.notify_all();
     }
 
-    void writeToBuffer(const std::vector<T>& data, size_t N) {
-        std::unique_lock<std::mutex> lock(m_mtx);
-        N = std::min(N, data.size());
-        for (size_t i = 0; i < N; i++)
-        {
-            if(buffer.isFull()){
-                break;
-            }
-            buffer.write(data.at(i));
-        }
-        m_cv.notify_one();
-    }
+    void writeToBuffer(const std::vector<T>& data, size_t N);
 
-    size_t readFromBuffer(std::vector<T>& data, size_t N=0) {
-        size_t i = 0;
-        std::unique_lock<std::mutex> lock(m_mtx);
-        if(N == 0){
-            N = data.size();
-        }
-        m_cv.wait(lock, [this]() { return !buffer.isEmpty() || closed; });
-        for (i = 0; i < N; i++)
-        {
-            if(buffer.isEmpty()){
-                break;
-            }
-            data[i] = buffer.read();
-        }
-        m_cv.notify_one();
-        return i;
-    }
+    size_t readFromBuffer(std::vector<T>& data, size_t N=0);
 };
 
 class Block{
@@ -138,6 +103,10 @@ public:
 
     Stream<OT>* getOutputStream(){ return m_pOutput; }
 
+    void resizeOutput(size_t newSize){
+        outputs.resize(newSize);
+    }
+
     virtual size_t work(std::vector<OT>& output);
 
     ~SourceBlock();
@@ -162,13 +131,13 @@ public:
     void connect(SyncBlock<X,IT>& Other)
     {
         m_pInput = Other.getOutputStream();
-        LOG_DEBUG("Connected {} to {}",m_name,Other.getName());
+        LOG_DEBUG("Connected %s to %s",m_name.c_str(),Other.getName().c_str());
     }
 
     void connect(SourceBlock<IT>& Other)
     {
         m_pInput = Other.getOutputStream();
-        LOG_DEBUG("Connected {} to {}",m_name,Other.getName());
+        LOG_DEBUG("Connected %s to %s",m_name.c_str(),Other.getName().c_str());
     }
 
     void connect(Stream<IT>* stream){
@@ -195,17 +164,22 @@ private:
 public:
     SinkBlock(size_t BufferSize);
 
+    // Changes the MTU (Default = 4096)
+    void resizeInput(size_t newSize){
+        inputs.resize(newSize);
+    }
+
     template <typename X>
     void connect(SyncBlock<X,IT>& Other)
     {
         m_pInput = Other.getOutputStream();
-        LOG_DEBUG("Connected {} to {}",m_name,Other.getName());
+        LOG_DEBUG("Connected %s to %s",m_name.c_str(),Other.getName().c_str());
     }
 
     void connect(SourceBlock<IT>& Other)
     {
         m_pInput = Other.getOutputStream();
-        LOG_DEBUG("Connected {} to {}",m_name,Other.getName());
+        LOG_DEBUG("Connected %s to %s",m_name.c_str(),Other.getName().c_str());
     }
 
     void connect(Stream<IT>* stream){

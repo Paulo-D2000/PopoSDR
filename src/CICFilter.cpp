@@ -1,18 +1,15 @@
 #include <CICFilter.h>
 
-
 CICFilter::CICFilter(const size_t& Order, const CICRate& rate, const size_t& BufferSize): SyncBlock<CF32>(BufferSize, 1, rate.Interpolation) {
     m_rate = rate;
     this->m_name = "CICFilter";
     for (size_t i = 0; i < Order; i++)
     {
-        m_integ.push_back({CI64(0, 0)});
+        m_integ.push_back({{0, 0}});
         m_comb.push_back({std::vector<CI64>(std::max(m_rate.Interpolation, m_rate.Decimation), CI64{0,0})});
     }
     LOG_DEBUG("Created CICFilter.");
 }
-
-
 
 CF32 CICFilter::filter(const CF32& input){
     CI64 output = {0,0};

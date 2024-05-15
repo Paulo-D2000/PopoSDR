@@ -13,12 +13,6 @@ size_t FmDemodulator::work(const size_t& n_inputItems, std::vector<CF32>&  input
     size_t outputIdx = 0;
     for (size_t i = 0; i < n_inputItems; i++)
     {
-        mDelayLine.pop_back();          // remove last
-        mDelayLine.insert(mDelayLine.begin(),input.at(i)); // push new 
-
-        mFifo.pop_back();          // remove last
-        mFifo.insert(mFifo.begin(),input.at(i)); // push new
-
         CF32 z_dlay = mDelayLine.back(); // get last
         // Apply FIR differentiator (scale by tap length)
         CF32 z_hat = std::inner_product(mFifo.begin(), mFifo.end(), mCoeffs.begin(), CF32(0.0f));
@@ -28,8 +22,19 @@ size_t FmDemodulator::work(const size_t& n_inputItems, std::vector<CF32>&  input
         demod *= 1.0f / (m_deviation); // Normalize
         
         output.at(outputIdx++) = demod; // write output
+        
+        mDelayLine.pop_back();          // remove last
+        mDelayLine.insert(mDelayLine.begin(),input.at(i)); // push new 
+
+        mFifo.pop_back();          // remove last
+        mFifo.insert(mFifo.begin(),input.at(i)); // push new
     }
     return outputIdx;
+}
+
+void FmDemodulator::Reset(){
+    std::fill(mDelayLine.begin(), mDelayLine.end(), 0.0f);
+    std::fill(mFifo.begin(), mFifo.end(), 0.0f);
 }
 
 FmDemodulator::~FmDemodulator(){

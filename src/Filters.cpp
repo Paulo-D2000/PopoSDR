@@ -28,9 +28,9 @@ std::vector<F32> Generate_Gaussian_LPF(float Ts, float BTb, float Fs){
 
     LOG_DEBUG("Generated Gaussian FIR Taps.");
     LOG_DEBUG("  Params:");
-    LOG_DEBUG("    Ts:  {}",Ts);
-    LOG_DEBUG("    Btb: {}",BTb);
-    LOG_DEBUG("    Fs:  {}",Fs);
+    LOG_DEBUG("    Ts:  %f",Ts);
+    LOG_DEBUG("    Btb: %f",BTb);
+    LOG_DEBUG("    Fs:  %f",Fs);
     
     return taps;
 }
@@ -59,11 +59,11 @@ std::vector<F32> Generate_Generic_LPF(float SampleRate, float Cutoff, float Gain
 
     LOG_DEBUG("Generated Lowpass FIR Taps.");
     LOG_DEBUG("  Params:");
-    LOG_DEBUG("    SampleRate: {} Hz",SampleRate);
-    LOG_DEBUG("    Cutoff:     {} Hz",Cutoff);
-    LOG_DEBUG("    Span:       {} symbols",Span);
-    LOG_DEBUG("    Window:     {}",getWindowName(window));
-    LOG_DEBUG("    NumTaps:    {}",Ntaps);
+    LOG_DEBUG("    SampleRate: %f Hz",SampleRate);
+    LOG_DEBUG("    Cutoff:     %f Hz",Cutoff);
+    LOG_DEBUG("    Span:       %d symbols",Span);
+    LOG_DEBUG("    Window:     %s",getWindowName(window).c_str());
+    LOG_DEBUG("    NumTaps:    %d",Ntaps);
     
     return taps;
 }
@@ -118,18 +118,11 @@ std::vector<F32> Generate_Root_Raised_Cosine(float SampleRate, float SymbolRate,
 
     LOG_DEBUG("Generated RRC (Root Raised Cosine) FIR Taps.");
     LOG_DEBUG("  Params:");
-    LOG_DEBUG("    SampleRate: {} Hz",SampleRate);
-    LOG_DEBUG("    SymbolRate: {} Hz",SymbolRate);
-    LOG_DEBUG("    ExcessBw:   {}",ExcessBw);
-    LOG_DEBUG("    Span:       {} symbols",Span);
-    LOG_DEBUG("    NumTaps:    {}",Ntaps);
-    
-    std::cerr << "[";
-    for (size_t i = 0; i < Ntaps; i++)
-    {
-        std::cerr << taps[i] << ", ";
-    }
-    std::cerr << "]\n";
+    LOG_DEBUG("    SampleRate: %f Hz",SampleRate);
+    LOG_DEBUG("    SymbolRate: %f Hz",SymbolRate);
+    LOG_DEBUG("    ExcessBw:   %f",ExcessBw);
+    LOG_DEBUG("    Span:       %d symbols",Span);
+    LOG_DEBUG("    NumTaps:    %d",Ntaps);
     
     return taps;
 }

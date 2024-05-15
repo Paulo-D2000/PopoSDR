@@ -2,7 +2,8 @@
 #include <Constants.h>
 #include <Utils.h>
 
-CarrierRecovery::CarrierRecovery(const Constellation&ConstellationObj, float Damping, float LoopBw, const size_t &BufferSize) : SyncBlock(BufferSize), m_cloop(Damping, LoopBw), m_constellation(ConstellationObj)
+CarrierRecovery::CarrierRecovery(const Constellation&ConstellationObj, float Damping, float LoopBw, const size_t &BufferSize):
+ SyncBlock(BufferSize), m_cloop(Damping, LoopBw, 1.0f, 4.0f * M_PI_F * M_PI_F), m_constellation(ConstellationObj)
 {
     this->m_name = "CarrierRecovery";
     LOG_DEBUG("Created Carrier Recovery");

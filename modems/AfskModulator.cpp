@@ -7,9 +7,9 @@ AfskModulator::AfskModulator(size_t BaudRate, size_t SampleRate, size_t BufferSi
 {
     LOG_DEBUG("Created AfskModulator.");
     LOG_DEBUG("  Params:");
-    LOG_DEBUG("    BaudRate:   {}",BaudRate);
-    LOG_DEBUG("    SampleRate: {}",m_samplerate);
-    LOG_DEBUG("    Sps(Final): {}",m_sps);
+    LOG_DEBUG("    BaudRate:   %d",BaudRate);
+    LOG_DEBUG("    SampleRate: %d",m_samplerate);
+    LOG_DEBUG("    Sps(Final): %d",m_sps);
 
     m_interp = 1;
     std::vector<F32> interp_taps({1.0f});
@@ -20,8 +20,8 @@ AfskModulator::AfskModulator(size_t BaudRate, size_t SampleRate, size_t BufferSi
         interp_taps = Generate_Generic_LPF((float)SampleRate, 0.5f * (float)SampleRate / (float)m_interp, (float)m_interp, 6, Kaiser);
     }
 
-    LOG_TEST("AfskModulator Interpolation: {}", m_interp);
-    LOG_TEST("AfskModulator Final SR: {}, Desired SR: {}", m_interp * m_sps * BaudRate, SampleRate);
+    LOG_TEST("AfskModulator Interpolation: %d", m_interp);
+    LOG_TEST("AfskModulator Final SR: %d, Desired SR: %d", m_interp * m_sps * BaudRate, SampleRate);
 
     m_interpolator = new FirFilter<CF32>(interp_taps, {.Interpolation=m_interp, .Decimation=1}, m_buffsize*32*m_interp);
     m_interpolator->addSuffix("(Interpolator)");
@@ -29,7 +29,6 @@ AfskModulator::AfskModulator(size_t BaudRate, size_t SampleRate, size_t BufferSi
     // Deviation for AFSK = 500Hz * baudrate/1200 ?
     m_fmmod = new FmModulator(500.f * (float)BaudRate/1200.0f, SampleRate / m_interp);
 
-    //m_Gfilter->connect(&m_inp_stream);
     m_fmmod->connect(&m_inp_stream);
     m_interpolator->connect(*m_fmmod);
 

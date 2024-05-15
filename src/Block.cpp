@@ -1,13 +1,12 @@
 #include <Block.h>
 
-
 /* Base Block */
 void Block::run(){
     return;
 }
 
 void Block::start(){
-    LOG_DEBUG("Starting Block [{}]",m_name);
+    LOG_DEBUG("Starting Block [%s]",m_name.c_str());
     this->userStart();
     m_worker = std::thread(&Block::run, this);
 }
@@ -18,7 +17,7 @@ void Block::stop(){
         m_worker.join();
         this->close();
         this->userStop();
-        LOG_DEBUG("Stopped Block [{}]",m_name);
+        LOG_DEBUG("Stopped Block [%s]",m_name.c_str());
     }
 }
 
@@ -63,7 +62,7 @@ void SourceBlock<OT>::run(){
             ret = this->work(outputs);
         }
 
-        if(ret == 0 || !m_pOutput->isOpen()){
+        if(ret == 0 && !m_pOutput->isOpen()){
            terminate = true; 
            break;
         }
@@ -72,7 +71,7 @@ void SourceBlock<OT>::run(){
             m_pOutput->writeToBuffer(outputs, ret);
         }
     }
-    LOG_DEBUG("Joined thread on Block [{}].",m_name);
+    LOG_DEBUG("Joined thread on Block [%s].",m_name.c_str());
 }
 
 
@@ -96,6 +95,7 @@ SourceBlock<OT>::~SourceBlock(){
 template <typename IT, typename OT>
 SyncBlock<IT, OT>::SyncBlock(size_t BufferSize, size_t InputRate, size_t OutputRate): inputs(4096*InputRate), outputs(4096*OutputRate) {
     m_pOutput = new Stream<OT>(BufferSize);
+    m_pInput = nullptr;
 }
 
 template <typename IT, typename OT>
@@ -108,7 +108,7 @@ template <typename IT, typename OT>
 void SyncBlock<IT, OT>::run(){
     bool terminate = false;
     while(!terminate){
-        m_pInput->WaitCv();
+        //m_pInput->WaitCv();
         if(m_pInput->isEmpty() && !m_pInput->isOpen()){
             terminate = true;
             break;
@@ -120,7 +120,7 @@ void SyncBlock<IT, OT>::run(){
 
         m_pOutput->writeToBuffer(outputs, ret);
     }
-    LOG_DEBUG("Joined thread on Block [{}].",m_name);
+    LOG_DEBUG("Joined thread on Block [%s].",m_name.c_str());
 }
 
 template <typename IT, typename OT>
@@ -145,7 +145,9 @@ SyncBlock<IT, OT>::~SyncBlock(){
 
 
 template <typename IT>
-SinkBlock<IT>::SinkBlock(size_t BufferSize): inputs(4096) {}
+SinkBlock<IT>::SinkBlock(size_t BufferSize): inputs(4096) {
+    m_pInput = nullptr;
+}
 
 template <typename IT>
 size_t SinkBlock<IT>::work(const size_t& n_inputItems, std::vector<IT>&  input)
@@ -167,7 +169,7 @@ void SinkBlock<IT>::run(){
 
         size_t ret = this->work(nread, inputs);
     }
-    LOG_DEBUG("Joined thread on Block [{}].",m_name);
+    LOG_DEBUG("Joined thread on Block [%s].",m_name.c_str());
 }
 
 template <typename IT>
@@ -183,9 +185,69 @@ SinkBlock<IT>::~SinkBlock(){
     }
 }
 
+template <typename T>
+void Stream<T>::WaitCv(WaitType wt){
+    std::unique_lock<std::mutex> lock(m_mtx);
+    
+    if(wt == Empty){
+        m_cv.wait(lock, [this]() { return !buffer.isEmpty() || closed; });
+        return;
+    }
+    else if(wt == Full){
+        m_cv.wait(lock, [this]() { return !buffer.isFull() || closed; });
+        return;
+    }else{
+        m_cv.wait(lock, [this]() { return closed; });
+        return;
+    }
+}
+
+template <typename T>
+void Stream<T>::writeToBuffer(const std::vector<T>& data, size_t N) {
+    std::unique_lock<std::mutex> lock(m_mtx);
+    
+    N = std::min(N, data.size());
+    for (size_t i = 0; i < N; i++)
+    {
+        if(buffer.isFull()){
+            break;
+        }
+        buffer.write(data.at(i));
+    }
+    m_cv.notify_one();
+}
+
+template <typename T>
+size_t Stream<T>::readFromBuffer(std::vector<T>& data, size_t N) {
+    size_t i = 0;
+    std::unique_lock<std::mutex> lock(m_mtx);
+    if(N == 0){
+        N = data.size();
+    }
+    m_cv.wait(lock, [this]() { return !buffer.isEmpty() || closed; });
+    for (i = 0; i < N; i++)
+    {
+        if(buffer.isEmpty()){
+            break;
+        }
+        data[i] = buffer.read();
+    }
+    m_cv.notify_one();
+    return i;
+}
+
 
 /* Instantiations */
 
+// Streams //
+template class Stream<F32>; 
+template class Stream<CF32>;
+template class Stream<I8>; 
+template class Stream<U8>; 
+template class Stream<I16>; 
+template class Stream<U16>; 
+template class Stream<I32>; 
+template class Stream<U32>; 
 
 // Sources //
 // Basic types (Float & Complex)

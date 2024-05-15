@@ -13,7 +13,13 @@ void FirFilter<T>::loadTaps(const std::vector<F32>& taps){
     m_taps = std::move(taps);
     m_buffer.resize(m_taps.size());
     m_ptr = 0;
-    LOG_DEBUG("Loaded {} Taps on FirFilter.",m_taps.size());
+    LOG_DEBUG("Loaded %d Taps on FirFilter.",m_taps.size());
+}
+
+template <typename T>
+std::vector<F32> FirFilter<T>::getTaps()
+{
+    return m_taps;
 }
 
 template <typename T>
@@ -91,7 +97,7 @@ SyncBlock<T>(BufferSize, rate.Decimation, rate.Interpolation), m_rate(rate)
     std::vector<F32> finalTaps(newsize, 0);
     std::copy(taps.begin(), taps.end(), finalTaps.begin());
 
-    LOG_DEBUG("[{}] Allocated {} Taps in {}x {}-Tap Banks", this->m_name, newsize, nfilts, newsize/nfilts);
+    LOG_DEBUG("[%s] Allocated %d Taps in %dx %d-Tap Banks", this->m_name.c_str(), newsize, nfilts, newsize/nfilts);
 
     std::vector <F32> tapseg(newsize / nfilts);
     for (size_t i = 0; i < nfilts; i++)

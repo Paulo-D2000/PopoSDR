@@ -1,10 +1,11 @@
 cmake_minimum_required (VERSION 3.0)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 project (PopoSDR CXX)
 
+# lib srcs
 file(GLOB_RECURSE Lib_srcs src/*.cpp include/*.h)
 
 include_directories(
@@ -13,12 +14,26 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/modems/include
 )
 
-# Build MODEMS
+# Add lib
+add_library(LibPopoSDR STATIC ${Lib_srcs})
+
+# Modem srcs
 file(GLOB_RECURSE Modem_srcs modems/*.cpp modems/include/*.h)
 
-#add_executable(GMSK_Test examples/GMSK_Test.cpp ${Lib_srcs} ${Modem_srcs})
-#add_executable(AFSK_Test examples/AFSK_Test.cpp ${Lib_srcs} ${Modem_srcs})
-#add_executable(Main_Test main.cpp ${Lib_srcs})
-#add_executable(WFM_Test examples/WFM_Mono_UDP.cpp ${Lib_srcs})
-#add_executable(GMSK_Rx examples/GMSK_Rx.cpp ${Lib_srcs})
-add_executable(QAM_Rx examples/QAM_Rx.cpp ${Lib_srcs})
+# Examples & Modems
+add_executable(GMSK_Test examples/GMSK_Test.cpp ${Modem_srcs})
+add_executable(AFSK_Test examples/AFSK_Test.cpp ${Modem_srcs})
+add_executable(Main_Test main.cpp)
+add_executable(WFM_Test examples/WFM_Mono_UDP.cpp)
+add_executable(GMSK_Rx examples/GMSK_Rx.cpp)
+add_executable(QAM_Rx examples/QAM_Rx.cpp)
+add_executable(BerTest examples/BerTest.cpp ${Modem_srcs})
+
+# Link with lib
+target_link_libraries(GMSK_Test LibPopoSDR)
+target_link_libraries(AFSK_Test LibPopoSDR)
+target_link_libraries(Main_Test LibPopoSDR)
+target_link_libraries(WFM_Test  LibPopoSDR)
+target_link_libraries(GMSK_Rx   LibPopoSDR)
+target_link_libraries(QAM_Rx    LibPopoSDR)
+target_link_libraries(BerTest   LibPopoSDR)

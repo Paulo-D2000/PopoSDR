@@ -45,13 +45,13 @@ int main(){
 
     WriteWav("Test-AFSK.wav", ComplexInterleave(inputSamples), mod.GetSampleRate(), 2, 0.5f); // Scale output by 0.5
     float spwr = Vec_AvgPwr(inputSamples);
-    LOG_TEST("Avg Power: {:.3f} V(rms)",spwr);
+    LOG_TEST("Avg Power: %.3f V(rms)",spwr);
 
     /* Add AWGN */
     float SNRdB = 20.0f;
 
     float npwr = powf(10.0f,-SNRdB/10.0f) * spwr / sqrtf(2.0f);
-    LOG_INFO("SNR: {:.1f}dB = {} V(rms)",SNRdB,npwr);
+    LOG_INFO("SNR: %.1fdB = %f V(rms)",SNRdB,npwr);
     for (size_t i = 0; i < inputSamples.size(); i++)
     {
         inputSamples[i] = inputSamples[i] + CF32(npwr*ndist(rng),npwr*ndist(rng));
@@ -65,10 +65,10 @@ int main(){
     
     WriteWav("Demod-AFSK.wav", demodSamples,  mod.GetSampleRate(), 1, 0.5f); // Scale output by 0.5
     spwr = Vec_AvgPwr(demodSamples);
-    LOG_TEST("Avg Power: {:.3f} V(rms)",spwr);
+    LOG_TEST("Avg Power: %.3f V(rms)",spwr);
 
     /* Test Timing Recovery PLL */
-    TimingPLL<F32> pll(mod.GetSampleRate(), mod.GetBaudRate(), 0.9f);
+    TimingPLL<F32> pll(mod.GetSampleRate(), mod.GetBaudRate(), 0.1f);
 
     std::vector<F32> pllSamples(demodSamples.size()*mod.GetBaudRate()/mod.GetSampleRate());
     pll.work(demodSamples.size(), demodSamples, pllSamples);
@@ -89,7 +89,7 @@ int main(){
 
     WriteWav("Timing-AFSK.wav", pllSamples, mod.GetSampleRate(), 1, 0.5f); // Scale output by 0.5
     spwr = Vec_AvgPwr(pllSamples);
-    LOG_TEST("Avg Power: {:.3f} V(rms)",spwr);
+    LOG_TEST("Avg Power: %.3f V(rms)",spwr);
 
     LOG_INFO("Terminating AFSK Modulator");
 

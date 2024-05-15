@@ -25,7 +25,7 @@ size_t Agc<T>::work(const size_t& n_inputItems, std::vector<T>&  input, std::vec
 
 template<typename T>
 Agc<T>::~Agc(){
-    LOG_DEBUG("Destroyed Agc")
+    LOG_DEBUG("Destroyed Agc");
 }
 
 template class Agc<F32>;

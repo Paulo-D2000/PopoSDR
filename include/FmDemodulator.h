@@ -19,5 +19,7 @@ public:
 
     size_t work(const size_t& n_inputItems, std::vector<CF32>&  input, std::vector<F32>& output);
 
+    void Reset();
+
     ~FmDemodulator();
 };

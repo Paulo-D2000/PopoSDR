@@ -44,10 +44,10 @@ void WriteWav(std::string filename, std::vector<F32> data, size_t SampleRate=480
     std::string cwd = std::filesystem::current_path().generic_string();
     std::string file_path = cwd + "/" + filename;
 
-    LOG_TEST("Path: {}",file_path);
-    LOG_TEST("SampleRate: {}",SampleRate);
-    LOG_TEST("Channels: {}",Channels);
-    LOG_TEST("Data Size: {}",data.size());
+    LOG_TEST("Path: %s",file_path.c_str());
+    LOG_TEST("SampleRate: %d",SampleRate);
+    LOG_TEST("Channels: %d",Channels);
+    LOG_TEST("Data Size: %d",data.size());
 
     /* File gets closed when std::ofstream goes out of scope */ 
     std::ofstream outFile(file_path, std::ios::binary);
@@ -84,6 +84,6 @@ void WriteWav(std::string filename, std::vector<F32> data, size_t SampleRate=480
         outFile.write((char*)&sample, sizeof(I16)); // Write S16 as 2 char's
     }
     if(nclip > 0){
-        LOG_ERROR("Clipping {} samples...",nclip);
+        LOG_ERROR("Clipping %d samples...",nclip);
     }
 }

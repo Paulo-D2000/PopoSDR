@@ -16,6 +16,8 @@ public:
 
     size_t work(const size_t& n_inputItems, std::vector<F32>&  input, std::vector<CF32>& output);
 
+    void Reset();
+
     void updateParams(const float& DeviationHz, const size_t& SampleRate);
 
     ~FmModulator();

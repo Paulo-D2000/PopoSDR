@@ -7,9 +7,9 @@ GmskModulator::GmskModulator(size_t BaudRate, size_t SampleRate, size_t BufferSi
 {
     LOG_DEBUG("Created GmskModulator.");
     LOG_DEBUG("  Params:");
-    LOG_DEBUG("    BaudRate:   {}",BaudRate);
-    LOG_DEBUG("    SampleRate: {}",m_samplerate);
-    LOG_DEBUG("    Sps(Final): {}",m_sps);
+    LOG_DEBUG("    BaudRate:   %d",BaudRate);
+    LOG_DEBUG("    SampleRate: %d",m_samplerate);
+    LOG_DEBUG("    Sps(Final): %d",m_sps);
 
     m_interp = 1;
     std::vector<F32> interp_taps({1.0f});
@@ -20,8 +20,8 @@ GmskModulator::GmskModulator(size_t BaudRate, size_t SampleRate, size_t BufferSi
         interp_taps = Generate_Generic_LPF((float)SampleRate, 0.5f * (float)SampleRate / (float)m_interp, (float)m_interp, 6, Kaiser);
     }
 
-    LOG_TEST("GmskModulator Interpolation: {}", m_interp);
-    LOG_TEST("GmskModulator Final SR: {}, Desired SR: {}", m_interp * m_sps * BaudRate, SampleRate);
+    LOG_TEST("GmskModulator Interpolation: %d", m_interp);
+    LOG_TEST("GmskModulator Final SR: %d, Desired SR: %d", m_interp * m_sps * BaudRate, SampleRate);
 
     std::vector<F32> taps = Generate_Gaussian_LPF(3.0f, 0.5f, (float)m_sps);
     auto ptr = new FirFilter<F32>(taps, {1,1}, m_buffsize*32);

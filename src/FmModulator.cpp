@@ -28,6 +28,11 @@ void FmModulator::updateParams(const float& DeviationHz, const size_t& SampleRat
     m_freq = m_deviation;
 }
 
+void FmModulator::Reset(){
+    m_phase = 0.0f;
+    m_freq = m_deviation;
+}
+
 FmModulator::~FmModulator(){
     LOG_DEBUG("Destroyed Fm Modulator.");
 }

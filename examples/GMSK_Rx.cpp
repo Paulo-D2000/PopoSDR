@@ -37,13 +37,13 @@ int main(){
     size_t BaudRate   = 1200; //1200 Bd
 
     // Bufer Sizes
-    size_t PacketSize = 800;
+    size_t PacketSize = 4096;
     size_t BufferSize = 131072;
 
     // Blocks
     std::vector<Block*> blocks;
 
-    SocketSource<CF32, TCP> src(1234, PacketSize, true, 2*BufferSize);
+    SocketSource<CF32, UDP> src(1234, PacketSize, false, BufferSize);
 
     Agc<CF32> agc(1e-6f, 0.707f, BufferSize);
 
@@ -79,11 +79,11 @@ int main(){
     FirFilter<F32> fm_lpf(lpf_taps, {1,1}, BufferSize);
     
     // connect
-    //agc.connect(src);
-    //decim_inp.connect(agc);
-    //up_resamp.connect(decim_inp);
-    //down_resamp.connect(up_resamp);
-    fm.connect(src);
+    agc.connect(src);
+    decim_inp.connect(agc);
+    up_resamp.connect(decim_inp);
+    down_resamp.connect(up_resamp);
+    fm.connect(down_resamp);
     fm_lpf.connect(fm);
     agc2.connect(fm_lpf);
     pll.connect(agc2);
@@ -91,10 +91,10 @@ int main(){
 
     // start blocks
     blocks.push_back(&src);
-    //blocks.push_back(&agc);
-    //blocks.push_back(&decim_inp);
-    //blocks.push_back(&up_resamp);
-    //blocks.push_back(&down_resamp);
+    blocks.push_back(&agc);
+    blocks.push_back(&decim_inp);
+    blocks.push_back(&up_resamp);
+    blocks.push_back(&down_resamp);
     blocks.push_back(&fm);
     blocks.push_back(&fm_lpf);
     blocks.push_back(&agc2);
@@ -122,17 +122,19 @@ int main(){
         sw.push_back(syncword.at(i)-'0');
     }
     std::vector<int> sbuf(sw.size(),0);
-    LOG_DEBUG("SW SIZE: {}", sw.size());
+    LOG_DEBUG("SW SIZE: %d", sw.size());
 
     int maxcorr = 0;
     size_t bitpos = 0;
     U8 byte = 0x00;
     std::vector<int> pkt(1024, 0);
     std::vector<U8> msg(pkt.size()/8, 0);
+    size_t counter = 0;
     while(1){
-        stream->WaitCv();
+        // read demod samples
         size_t nread = stream->readFromBuffer(inputSamples);
-        // try demod
+
+        // try to frame
         for (size_t i = 0; i < nread; i++)
         {
             pkt.erase(pkt.end());
@@ -149,7 +151,7 @@ int main(){
             if(newcorr > (syncword.size()-4)){
                 std::stringstream result;
                 std::copy(sbuf.begin(), sbuf.end(), std::ostream_iterator<int>(result, ""));
-                LOG_INFO("New Corr: {}, New data: {}, SW: {}",newcorr,result.str(),syncword);
+                LOG_INFO("New Corr: %d, New data: %s, SW: %s",newcorr,result.str().c_str(),syncword.c_str());
                 result.str(std::string());
                 for (size_t k = 0; k < pkt.size(); k+=8)
                 {
@@ -166,17 +168,11 @@ int main(){
                     if(isascii(chr)){
                         result << chr;
                     }else{
-                        result << std::format(" 0x{:02x} ", msg[k]);
+                        result << string_format(" 0x%02x ", msg[k]);
                     }
                 }
-                LOG_INFO("Packet data: {}", result.str());
+                LOG_INFO("Packet data: %s", result.str().c_str());
             }
-        }
-        stream_out->WaitCv();
-        nread = stream_out->readFromBuffer(outputSamples);
-        for (size_t i = 0; i < nread; i++)
-        {
-            WriteCout(0.5f * outputSamples[i]);
         }
     }
 
