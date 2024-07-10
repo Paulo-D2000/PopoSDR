@@ -1,8 +1,16 @@
 #pragma once
 
-#include <sys/types.h>
+
+#ifdef _WIN32 // Include windows socket headers
+#include <winsock2.h>
+#define socklen_t int
+#else // Include linux socket headers
 #include <sys/socket.h>
+#include <sys/types.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
+#endif
+
 #include <unistd.h>
 #include <assert.h>
 
