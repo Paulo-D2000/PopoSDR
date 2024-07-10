@@ -17,6 +17,11 @@ include_directories(
 # Add lib
 add_library(LibPopoSDR STATIC ${Lib_srcs})
 
+# Link lib with socket stuff for win
+IF (WIN32)
+    target_link_libraries(LibPopoSDR ws2_32 wsock32)
+ENDIF()
+
 # Modem srcs
 file(GLOB_RECURSE Modem_srcs modems/*.cpp modems/include/*.h)
 
