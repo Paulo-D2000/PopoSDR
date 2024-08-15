@@ -188,7 +188,7 @@ public:
 
     Stream<IT>* getInputStream(){ return m_pInput; }
 
-    virtual size_t work(const size_t& n_inputItems, std::vector<IT>&  input);
+    virtual size_t work(const size_t& n_inputItems, std::vector<IT>& input);
 
     ~SinkBlock();
 };

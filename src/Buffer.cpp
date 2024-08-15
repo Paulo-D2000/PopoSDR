@@ -64,7 +64,7 @@ T Buffer<T>::read(){
     m_occupancy--;
     auto now = std::chrono::system_clock::now();
     std::chrono::duration<double> elapsed = now - m_start;
-    if(elapsed.count() > 0.5){
+    if(elapsed.count() > 1.0){
         m_Thput = static_cast<F32>(m_NumTransfers) / elapsed.count();
         m_NumTransfers = 0;
         LOG_DEBUG("[BUFFER<%s>(%d)] Throughtput: %.1f KT/s", typeid(T).name(), m_size, m_Thput / 1000);

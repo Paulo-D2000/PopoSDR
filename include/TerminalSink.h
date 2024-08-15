@@ -1,5 +1,10 @@
 #pragma once
 
+#ifdef _WIN32
+#include <io.h>
+#include <fcntl.h>
+#endif
+
 #include <Block.h>
 
 template <typename IT>

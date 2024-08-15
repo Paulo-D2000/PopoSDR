@@ -1,6 +1,5 @@
 #include <TimingPLL.h>
 #include <Utils.h>
-#include <ControlLoop.h>
 #include <FirFilter.h>
 #include <functional>
 #include <numeric>
@@ -12,7 +11,7 @@
 
 template <typename T>                                                                                                                               
 TimingPLL<T>::TimingPLL(const size_t& SampleRate, const size_t& SymbolRate, const float& Alpha, const size_t& BufferSize): SyncBlock<T>(BufferSize, SampleRate/SymbolRate, 1), m_alpha(1.0f-Alpha)
-,error_stream(BufferSize) {
+,error_stream(BufferSize), m_const_obj({}) {
     double sps = m_sps = (double)SampleRate / (double)SymbolRate;
     m_step = (I32)((256.0 * 256.0 * 256.0 * 256.0) / sps);
 
@@ -29,8 +28,8 @@ TimingPLL<T>::TimingPLL(const size_t& SampleRate, const size_t& SymbolRate, cons
 }
 
 template <typename T>                                                                                                                               
-TimingPLL<T>::TimingPLL(const size_t& SampleRate, const size_t& SymbolRate, TLL_Type Type, std::vector<std::vector<F32>> PFB_Taps, const size_t& BufferSize): SyncBlock<T>(BufferSize, SampleRate/SymbolRate, 1), m_type(Type), m_userTaps(PFB_Taps)
-,error_stream(BufferSize) {
+TimingPLL<T>::TimingPLL(const size_t& SampleRate, const size_t& SymbolRate, TLL_Config Config, const size_t& BufferSize): SyncBlock<T>(BufferSize, SampleRate/SymbolRate, 1), m_type(Config.Type),
+ m_cloop(Config.Damping, Config.LoopBw, (float)SampleRate/(float)SymbolRate), m_userTaps(Config.PFB_Taps), m_const_obj(Config.Constellation_Obj), error_stream(BufferSize) {
     double sps = m_sps = (double)SampleRate / (double)SymbolRate;
     m_step = (I32)((256.0 * 256.0 * 256.0 * 256.0) / sps);
 
@@ -88,10 +87,8 @@ size_t TimingPLL<F32>::work(const size_t& n_inputItems, std::vector<F32>&  input
     return outputIdx;
 }
 
-static ControlLoop cloop(0.707f, 1.0f/100.0f, 8.0f, 8.0f);
 static std::vector<FirFilter<CF32>*>interp;
 static std::vector<FirFilter<CF32>*>interp_diff;
-static Constellation const_obj({{-1,-1},{-1,1},{1,-1},{1,1}});//({{0.316228, -0.316228}, {-0.316228, -0.316228}, {0.948683, -0.948683}, {-0.948683, -0.948683}, {-0.948683, -0.316228}, {0.948683, -0.316228}, {-0.316228, -0.948683}, {0.316228, -0.948683}, {-0.948683, 0.948683}, {0.948683, 0.948683}, {-0.316228, 0.316228}, {0.316228, 0.316228}, {0.316228, 0.948683}, {-0.316228, 0.948683}, {0.948683, 0.316228}, {-0.948683, 0.316228}});
 static bool build_firs = true;
 static bool enable = true;
 static float d_mu = 0.5f;
@@ -172,8 +169,8 @@ size_t TimingPLL<CF32>::work(const size_t& n_inputItems, std::vector<CF32>&  inp
                                             dtaps.begin(), CF32(0,0));
 
             // Compute sample decisions (closest sample from constellation)
-            d_decision[0] = const_obj.make_decision(d_input[0]);
-            d_decision[1] = const_obj.make_decision(d_input[1]);
+            d_decision[0] = m_const_obj.make_decision(d_input[0]);
+            d_decision[1] = m_const_obj.make_decision(d_input[1]);
 
             // Calculate error (MM TED)
             /*
@@ -183,36 +180,37 @@ size_t TimingPLL<CF32>::work(const size_t& n_inputItems, std::vector<CF32>&  inp
                            d_decision[0].imag() * d_input[1].imag());
             */
             // Maybe Try Sign(x) * x' ML-TED
-            /*
+            
             error = ((d_input[0].real() < 0.0f ? -d_input_derivative[0].real()
                                                : d_input_derivative[0].real()) +
                      (d_input[0].imag() < 0.0f ? -d_input_derivative[0].imag()
                                                : d_input_derivative[0].imag())) / 
                     2.0f;
-            */
+            /*
             error = (d_input[0].real() * d_input_derivative[0].real() +
                     d_input[0].imag() * d_input_derivative[0].imag()) /
                     2.0f;
-            
+            */
             error = branchless_clip(error, 1.0f);
             //error_stream.writeToBuffer({CF32(2.0f*d_mu-1.0f, error)},1);
+            //error_vec.push_back(CF32(2.0f*d_mu-1.0f, error));
         }else{
             error = 0.0f;
         }
 
         // Update PI Loop Filter
-        float v = cloop.update(error);
+        float v = m_cloop.update(error);
 
         // Update rate estimate
-        float W = (1.0f/m_sps) + branchless_clip(v, 0.05f/m_sps);
+        float W = (1.0f/m_sps) + branchless_clip(v, 0.005f/m_sps);
 
         // Modulo-1 Counter (NCO)
         counter_next = counter - W;
-        if(counter_next < 0.0f){
+        if(counter_next < 0){
             counter_next = 1.0f + counter_next;
             enable = 1;
-            d_mu_next = counter / m_sps;
-            m_k = i + m_sps/2 + 1;
+            d_mu_next = counter / W;
+            m_k = i;
         }
         else{
             d_mu_next = d_mu;

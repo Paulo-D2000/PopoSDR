@@ -4,7 +4,13 @@ template <typename IT>
 TerminalSink<IT>::TerminalSink(size_t SampleRate, size_t BufferSize):SinkBlock<IT>(BufferSize), m_SampleRate(SampleRate) {
     this->m_name = "TerminalSink";
     LOG_DEBUG("Created Terminal Sink (STDOUT)");
+    // BufferSize = Samplerate/60 so 1 sample every 16.7ms
     this->resizeInput(m_SampleRate / 60);
+    
+    // Enable binary i/o in windows
+    #ifdef _WIN32
+    setmode(fileno(stdout),O_BINARY);
+    #endif
 }
 
 template <typename IT>

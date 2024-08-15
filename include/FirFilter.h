@@ -12,14 +12,14 @@ struct FirRate{
     size_t Decimation=1;
 };
 
-template <typename T>
+template <typename T, typename Q = F32>
 class FirFilter: public SyncBlock<T,T>
 {
 public:
-    FirFilter(const std::vector<F32>& taps={0.0f}, const FirRate& rate={1,1}, const size_t& BufferSize=0);
+    FirFilter(const std::vector<Q>& taps={}, const FirRate& rate={1,1}, const size_t& BufferSize=0);
     
-    void loadTaps(const std::vector<F32>& taps);
-    std::vector<F32>getTaps();
+    void loadTaps(const std::vector<Q>& taps);
+    std::vector<Q>getTaps();
     T filter(const T& input);
 
     size_t work(const size_t& n_inputItems, std::vector<T>&  input, std::vector<T>& output);
@@ -29,7 +29,7 @@ public:
 private:
     size_t m_ptr;
     FirRate m_rate;
-    std::vector<F32> m_taps;
+    std::vector<Q> m_taps;
     std::vector<T> m_buffer;
 };
 

@@ -1,29 +1,29 @@
 #include <FirFilter.h>
 
-template <typename T>
-FirFilter<T>::FirFilter(const std::vector<F32>& taps, const FirRate& rate, const size_t& BufferSize):
+template <typename T, typename Q>
+FirFilter<T,Q>::FirFilter(const std::vector<Q>& taps, const FirRate& rate, const size_t& BufferSize):
  SyncBlock<T>(BufferSize, rate.Decimation, rate.Interpolation), m_rate(rate),
   m_taps(std::move(taps)), m_ptr(0), m_buffer(taps.size()) {
     this->m_name = "FirFilter";
     LOG_DEBUG("Created FirFilter.");
 }
 
-template <typename T>
-void FirFilter<T>::loadTaps(const std::vector<F32>& taps){
+template <typename T, typename Q>
+void FirFilter<T,Q>::loadTaps(const std::vector<Q>& taps){
     m_taps = std::move(taps);
     m_buffer.resize(m_taps.size());
     m_ptr = 0;
     LOG_DEBUG("Loaded %d Taps on FirFilter.",m_taps.size());
 }
 
-template <typename T>
-std::vector<F32> FirFilter<T>::getTaps()
+template <typename T, typename Q>
+std::vector<Q> FirFilter<T,Q>::getTaps()
 {
     return m_taps;
 }
 
-template <typename T>
-T FirFilter<T>::filter(const T& input){
+template <typename T, typename Q>
+T FirFilter<T,Q>::filter(const T& input){
     T output = T(0);
     m_buffer[m_ptr++] = input;
     size_t m_sumidx = m_ptr;
@@ -41,8 +41,8 @@ T FirFilter<T>::filter(const T& input){
     return output;
 }
 
-template <typename T>
-size_t FirFilter<T>::work(const size_t& n_inputItems, std::vector<T>&  input, std::vector<T>& output){
+template <typename T, typename Q>
+size_t FirFilter<T,Q>::work(const size_t& n_inputItems, std::vector<T>&  input, std::vector<T>& output){
     size_t outputIdx = 0;
     if(m_rate.Interpolation >= 1 and m_rate.Decimation == 1){
         for (size_t i = 0; i < n_inputItems; i++)
@@ -67,8 +67,8 @@ size_t FirFilter<T>::work(const size_t& n_inputItems, std::vector<T>&  input, st
     return outputIdx;
 }
 
-template <typename T>
-FirFilter<T>::~FirFilter(){
+template <typename T, typename Q>
+FirFilter<T,Q>::~FirFilter(){
     LOG_DEBUG("Destroyed FirFilter.");
 }
 
@@ -157,8 +157,12 @@ PolyPhaseFIR<T>::~PolyPhaseFIR()
     LOG_DEBUG("Destroyed Polyphase FIR");
 }
 
-template class FirFilter<F32>;
-template class FirFilter<CF32>;
+// Real Taps FIR
+template class FirFilter<F32,F32>;
+template class FirFilter<CF32,F32>;
+
+// Complex Taps FIR
+template class FirFilter<CF32,CF32>;
 
 template class PolyPhaseFIR<F32>;
 template class PolyPhaseFIR<CF32>;

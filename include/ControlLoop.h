@@ -1,6 +1,8 @@
 #pragma once
 
+#include <Constants.h>
 #include <Logging.h>
+#include <limits>
 
 class ControlLoop
 {
@@ -10,6 +12,9 @@ private:
 
     float m_integrator_0;
     float m_integrator_1;
+
+    float m_min_freq = std::numeric_limits<float>::lowest();
+    float m_max_freq = std::numeric_limits<float>::infinity();
 public:
     struct LoopGains{float Kp; float Ki;};
 
@@ -34,6 +39,12 @@ public:
         LOG_DEBUG("ControlLoop Gains:\n  Kp: %f\n  Ki: %f",m_Kp, m_Ki);
     }
 
+    /// @brief Generate a PI + (NCO optional) Control Loop
+    ControlLoop(): m_integrator_0(0.0f), m_integrator_1(0.0f){
+        m_Kp = 0.0f;
+        m_Ki = 0.0f;
+        LOG_DEBUG("ControlLoop Gains:\n  Kp: %f\n  Ki: %f",m_Kp, m_Ki);
+    }
     
     /// @brief Sets the Loop gains 
     /// @param Kp (float) Proportional Gain
@@ -73,4 +84,31 @@ public:
     float getLast(){
         return m_integrator_1;
     }
+
+    /// @brief Sets the min freq
+    void setMinFreq(float minFreq){
+        m_min_freq = minFreq;
+    }
+
+    /// @brief Sets the max freq
+    void setMaxFreq(float maxFreq){
+        m_max_freq = maxFreq;
+    }
+
+    /// @brief Keeps the Freq between -m_min_freq, m_max_freq
+    void freqLimit(){
+        if (m_integrator_0 > m_max_freq)
+            m_integrator_0 = m_max_freq;
+        else if (m_integrator_0 < m_min_freq)
+            m_integrator_0 = m_min_freq;
+    }
+
+    void phase_wrap()
+    {
+        while (m_integrator_1 > (M_TWOPI_F))
+            m_integrator_1 -= M_TWOPI_F;
+        while (m_integrator_1 < (-M_TWOPI_F))
+            m_integrator_1 += M_TWOPI_F;
+    }
+
 };

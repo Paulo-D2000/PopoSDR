@@ -2,6 +2,7 @@ cmake_minimum_required (VERSION 3.0)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXE_LINKER_FLAGS -static)
 
 project (PopoSDR CXX)
 
@@ -14,13 +15,13 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/modems/include
 )
 
+# Link with socket stuff for win
+IF (WIN32)
+    link_libraries(ws2_32 wsock32)
+ENDIF()
+
 # Add lib
 add_library(LibPopoSDR STATIC ${Lib_srcs})
-
-# Link lib with socket stuff for win
-IF (WIN32)
-    target_link_libraries(LibPopoSDR ws2_32 wsock32)
-ENDIF()
 
 # Modem srcs
 file(GLOB_RECURSE Modem_srcs modems/*.cpp modems/include/*.h)
